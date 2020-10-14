@@ -1,14 +1,14 @@
-export const authors = [
+export const authors_static = [
     {
-      label: 'Hisham',
+      value: 'Hisham',
     },
     {
-      label: 'Hasan',
+      value: 'Hasan',
     },
     {
-      label: 'Sybolt',
+      value: 'Sybolt',
     },
     {
-      label: 'Mo',
+      value: 'Mo',
     },
   ];

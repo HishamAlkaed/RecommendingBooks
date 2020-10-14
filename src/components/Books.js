@@ -1,26 +1,11 @@
-export const books = [
+export const books_static = [
     {
-      label: 'book1',
+      value: 'A_Crown_of_Swords',
     },
     {
-      label: 'book2',
+      value: 'Kokoro',
     },
     {
-      label: 'book3',
-    },
-    {
-      label: 'book4',
-    },
-    {
-      label: 'book5',
-    },
-    {
-      label: 'book6',
-    },
-    {
-      label: 'book7',
-    },
-    {
-      label: 'book8',
+      value: 'Story_of_O',
     },
   ]

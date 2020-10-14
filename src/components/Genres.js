@@ -1,4 +1,4 @@
-export const genres = [
+export const genres_static = [
     {
       value: 'biography',
       label: 'Biography',

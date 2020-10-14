@@ -1,40 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { withRouter } from 'react-router';
 
 import { makeStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
-// import Paper from '@material-ui/core/Paper';
 
 import Header from '../components/Header';
 import { Button, Input } from '@material-ui/core';
 import TextField from '@material-ui/core/TextField';
-import MenuItem from '@material-ui/core/MenuItem';
-import {genres} from '../components/Genres'
-import {authors} from '../components/Authors'
-import {books} from '../components/Books'
+import Autocomplete, {createFilterOptions} from '@material-ui/lab/Autocomplete';
+
+
+import {genres_static} from '../components/Genres'
+import {authors_static} from '../components/Authors'
+import {books_static} from '../components/Books'
 
 const useStyles = makeStyles(theme => ({
   root: {
     minWidth: 275,
     width: '100%',
-    // margin: 0,
-    margin: theme.spacing(1),
   },
-  // paper: {
-  //   height: 140,
-  //   width: 300,
-  //   background: '#d8eefe',
-  //   padding: theme.spacing(2),
-  //   textAlign: 'center',
-  //   color: theme.palette.text.secondary,
-  //   display: 'flex',
-  //   justifyContent: 'center',
-  //   alignItems: 'center',
-  // },
+  grid: {
+    justifyContent:"center",
+    flexDirection: "column",
+    width: "50%",
+    margin: '0 auto',
+  },
   drop_down: {
     margin: theme.spacing(5),
-    width: '40%',
-    background: 'linear-gradient(45deg, #c9d9f2 30%, #7ea9ed 90%)',
+    width: "100%",
+    // background: 'linear-gradient(45deg, #c9d9f2 30%, #7ea9ed 90%)',
     borderRadius: 9,
   },
   go_button: {
@@ -44,78 +38,109 @@ const useStyles = makeStyles(theme => ({
     boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)',
     color: 'white',
     height: 48,
+    width: "40%",
     padding: '0 30px',
   }
 }));
 
+const filterOptions = createFilterOptions({
+  matchFrom: "any",
+  limit: 5
+});
+
 function Home(props) {
   const classes = useStyles();
+
+  const [genres, setGenres] = useState([])
+  const [books, setBooks] = useState([])
+  const [authors, setAuthors] = useState([])
 
   return (
     <React.Fragment>
       <Header title="Home" />
-      <Grid
-        container
-        className={classes.root}
-        alignContent="center"
-        alignItems="center"
-        justify="center"
-        spacing={10}
-      >
         <form className={classes.root} noValidate autoComplete="off">
-          <div>
-            <TextField
-              id="standard-select-genre"
+        <Grid
+          container
+          className={classes.grid}
+        >
+          <Grid item>
+             <Autocomplete
+              multiple
+              id="tags-standard"
               className={classes.drop_down}
-              select
-              label="Select"
-              // onChange={handleChange}
-              helperText="Please select the desired genre"
-            >
-              {genres.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>  
-          </div>
-          <div>
-            <TextField 
-              id="standard-select-author"
+              options={genres_static}
+              getOptionLabel={(option) => option.value}
+              filterOptions={filterOptions}
+              onChange={(e, newGenres) => {
+                setGenres(newGenres)
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  variant="standard"
+                  label="Select Genres"
+                  placeholder="Select desired genre"
+                />
+              )}
+            />
+          </Grid>
+          <Grid item>
+             <Autocomplete
+              multiple
+              id="tags-standard"
               className={classes.drop_down}
-              select
-              label="Select"
-              // onChange={handleChange}
-              helperText="Please select the desired author"
-            >
-              {authors.map((option) => (
-                <MenuItem key={option.label} value={option.label}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
-          </div>
-          <div>
-            <TextField 
-              id="standard-select-book"
+              options={authors_static}
+              getOptionLabel={(option) => option.value}
+              filterOptions={filterOptions}
+              // defaultValue={[top100Films[13]]}
+              onChange={(e, newAuthors) => {
+                setAuthors(newAuthors)
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  variant="standard"
+                  label="Select Authors"
+                  placeholder="Select desired authors"
+                />
+              )}
+            />
+          </Grid>
+          <Grid item>
+             <Autocomplete
+              multiple
+              id="tags-standard"
               className={classes.drop_down}
-              select
-              label="Select"
-              // onChange={handleChange}
-              helperText="Please select the desired book"
-            >
-              {books.map((option) => (
-                <MenuItem key={option.label} value={option.label}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </TextField>
-          </div>
-          <Button className={classes.go_button} variant="contained" color="primary" >
-            Go / Search
-          </Button>
-        </form>
-      </Grid>
+              options={books_static}
+              getOptionLabel={(option) => option.value}
+              filterOptions={filterOptions}
+              // defaultValue={[top100Films[13]]}
+              onChange={(e, newBooks) => {
+                setBooks(newBooks)
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  variant="standard"
+                  label="Similar Books"
+                  placeholder="Select similar books"
+                />
+              )}
+            />
+          </Grid>
+          <Grid item>
+            <Button className={classes.go_button} onClick={() => {
+              if (books.length > 0) {
+                // props.search({books, genres, authors})
+                props.history.push('/books', {books, genres, authors})
+                console.log(props)
+              }
+            }} variant="contained" color="primary" >
+              Go / Search
+            </Button>
+          </Grid>
+        </Grid>
+      </form>
     </React.Fragment>
   );
 }
