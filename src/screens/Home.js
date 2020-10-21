@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { withRouter } from 'react-router';
 
 import { makeStyles } from '@material-ui/core/styles';
@@ -13,6 +13,7 @@ import Autocomplete, {createFilterOptions} from '@material-ui/lab/Autocomplete';
 import {genres_static} from '../components/Genres'
 import {authors_static} from '../components/Authors'
 import {books_static} from '../components/Books'
+import { GetAll } from '../utils/index'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -45,7 +46,7 @@ const useStyles = makeStyles(theme => ({
 
 const filterOptions = createFilterOptions({
   matchFrom: "any",
-  limit: 5
+  // limit: 5
 });
 
 function Home(props) {
@@ -54,7 +55,18 @@ function Home(props) {
   const [genres, setGenres] = useState([])
   const [books, setBooks] = useState([])
   const [authors, setAuthors] = useState([])
+  const [selectedBooks, setSelectedBooks] = useState([])
+  const [selectedAuthors, setSelectedAuthors] = useState([])
+  const [selectedGenres, setSelectedGenres] = useState([])
 
+  useEffect(() => {
+    GetAll()
+    .then(({books, genres, authors}) => {
+      setBooks(books)
+      setGenres(genres)
+      setAuthors(authors)
+    })
+  }, [])
   return (
     <React.Fragment>
       <Header title="Home" />
@@ -68,12 +80,19 @@ function Home(props) {
               multiple
               id="tags-standard"
               className={classes.drop_down}
-              options={genres_static}
-              getOptionLabel={(option) => option.value}
+              options={Array.from(genres.values())}
+              getOptionLabel={(option) => option}
               filterOptions={filterOptions}
+              // disableCloseOnSelect={selectedGenres.length > 1}
+              loading={genres.length < 1}
               onChange={(e, newGenres) => {
-                setGenres(newGenres)
+                setSelectedGenres(newGenres)
               }}
+              getOptionDisabled={() => selectedGenres.length > 2}
+              disableCloseOnSelect
+              // renderTags={(param) => {
+              //   return param
+              // }}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -89,13 +108,15 @@ function Home(props) {
               multiple
               id="tags-standard"
               className={classes.drop_down}
-              options={authors_static}
-              getOptionLabel={(option) => option.value}
+              options={Array.from(authors.values())}
+              getOptionLabel={(option) => option}
               filterOptions={filterOptions}
               // defaultValue={[top100Films[13]]}
               onChange={(e, newAuthors) => {
-                setAuthors(newAuthors)
+                setSelectedAuthors(newAuthors)
               }}
+              getOptionDisabled={() => selectedAuthors.length > 2}
+              disableCloseOnSelect
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -111,13 +132,15 @@ function Home(props) {
               multiple
               id="tags-standard"
               className={classes.drop_down}
-              options={books_static}
-              getOptionLabel={(option) => option.value}
+              options={Array.from(books.values()).sort((a, b) => b.rating - a.rating)}
+              getOptionLabel={(option) => option.title}
               filterOptions={filterOptions}
               // defaultValue={[top100Films[13]]}
               onChange={(e, newBooks) => {
-                setBooks(newBooks)
+                setSelectedBooks(newBooks)
               }}
+              getOptionDisabled={() => selectedBooks.length > 2}
+              disableCloseOnSelect
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -130,10 +153,8 @@ function Home(props) {
           </Grid>
           <Grid item>
             <Button className={classes.go_button} onClick={() => {
-              if (books.length > 0) {
-                // props.search({books, genres, authors})
-                props.history.push('/books', {books, genres, authors})
-                console.log(props)
+              if (selectedBooks.length > 0 && selectedGenres.length > 0 && selectedAuthors.length > 0) {
+                props.history.push('/books', {books: selectedBooks, genres: selectedGenres, authors: selectedAuthors})
               }
             }} variant="contained" color="primary" >
               Go / Search
