@@ -41,9 +41,9 @@ function BooksTable({meta, loadingBooks}) {
     return <MaterialTable
         icons={tableIcons}
         columns={[
-            { title: 'Title', field: 'title' },
+            { title: 'Title', field: 'title', cellStyle: (_, obj) => ({backgroundColor: obj.color}) },
             { title: 'Author', field: 'author' },
-            { title: 'Genre', field: 'genre_title' },
+            { title: 'Genre', field: 'genre_name' },
             { title: 'Rating', field: 'rating', type: 'numeric' },
             { title: 'Similar to', field: 'count' }
         ]}
