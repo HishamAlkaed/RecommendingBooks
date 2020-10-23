@@ -6,11 +6,14 @@ By Hasan, Hisham, Sybolt and Mohammed. Group 25
 Please follow this instructions to install and run the app:
 > Make sure you have Node[^1] installed on your machine. NPM[^2] comes standards with nodejs. If you faced troubles while installing, refer to their main websites.
 
-1. clone/download this repository and **change directory** into it from the command line.
-2. Then `npm install`
-3. Finally `npm start`
+1. clone/download this repository and **change directory** into it from the command line .
+2. Then `npm install` .
+3. Create a new repository in GraphDB or some similar editor .
+4. Import the .ttl file into graphDB repository.
+5. Copy and paste the repository URL into scr->utils->index.js->line 5.
+6. Finally `npm start` .
 
-the last command runs the app in the development mode.
+the final command runs the app in the development mode.
 > We focus on mobile; for now. So after it runs, open the inspector and run the mobile emulator.
 Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
