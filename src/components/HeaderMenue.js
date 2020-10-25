@@ -68,11 +68,11 @@ export default function CustomizedMenus(props) {
         onClose={handleClose}
       >
         {/* TODO: Add books route! */}
-        <StyledMenuItem onClick={() => props.history.push('books')}>
+        <StyledMenuItem onClick={() => props.history.push('books', props.history.location.state)}>
           <ListItemIcon>
             <BookIcon />
           </ListItemIcon>
-          <ListItemText primary="Random Books" />
+          <ListItemText primary="Book feeds" />
         </StyledMenuItem>
       </StyledMenu>
     </div>

@@ -5,7 +5,7 @@ import { makeStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
 
 import Header from '../components/Header';
-import { Button } from '@material-ui/core';
+import { Button, Typography } from '@material-ui/core';
 import TextField from '@material-ui/core/TextField';
 import Autocomplete, {createFilterOptions} from '@material-ui/lab/Autocomplete';
 
@@ -18,7 +18,7 @@ const useStyles = makeStyles(theme => ({
     width: '100%',
   },
   grid: {
-    justifyContent:"center",
+    justifyContent: "center",
     flexDirection: "column",
     width: "50%",
     margin: '0 auto',
@@ -26,7 +26,6 @@ const useStyles = makeStyles(theme => ({
   drop_down: {
     margin: theme.spacing(5),
     width: "100%",
-    // background: 'linear-gradient(45deg, #c9d9f2 30%, #7ea9ed 90%)',
     borderRadius: 9,
   },
   input: {
@@ -41,12 +40,18 @@ const useStyles = makeStyles(theme => ({
     height: 48,
     width: "40%",
     padding: '0 30px',
+    marginLeft: theme.spacing(5),
+  },
+  info: {
+    fontSize: '1.4em',
+    padding: 0,
+    fontFamily: 'cursive',
   }
 }));
 
 const filterOptions = createFilterOptions({
   matchFrom: "any",
-  limit: 5
+  limit: 7
 });
 
 function Home(props) {
@@ -55,9 +60,9 @@ function Home(props) {
   const [genres, setGenres] = useState([])
   const [books, setBooks] = useState([])
   const [authors, setAuthors] = useState([])
-  const [selectedBooks, setSelectedBooks] = useState([])
-  const [selectedAuthors, setSelectedAuthors] = useState([])
-  const [selectedGenres, setSelectedGenres] = useState([])
+  const [selectedBooks, setSelectedBooks] = useState(props.history.location.state.books || [])
+  const [selectedAuthors, setSelectedAuthors] = useState(props.history.location.state.authors || [])
+  const [selectedGenres, setSelectedGenres] = useState(props.history.location.state.genres || [])
 
   useEffect(() => {
     GetAll()
@@ -70,29 +75,31 @@ function Home(props) {
   return (
     <React.Fragment>
       <Header title="Home" />
-        <form className={classes.root} noValidate autoComplete="off">
+      <form className={classes.root} noValidate autoComplete="off">
         <Grid
           container
           className={classes.grid}
         >
           <Grid item>
-             <Autocomplete
+            <Typography component="h2" className={[classes.drop_down, classes.info]}>
+              Start choosing your favorite authors (among {authors.size}), genres (among {genres.size}) and books (among {books.size}) in order to get the best recommendations!
+              </Typography>
+          </Grid>
+          <Grid item>
+            <Autocomplete
               multiple
               id="tags-standard"
               className={classes.drop_down}
               options={Array.from(genres.values())}
+              defaultValue={selectedGenres}
               getOptionLabel={(option) => option}
               filterOptions={filterOptions}
-              // disableCloseOnSelect={selectedGenres.length > 1}
               loading={genres.length < 1}
               onChange={(e, newGenres) => {
                 setSelectedGenres(newGenres)
               }}
               getOptionDisabled={() => selectedGenres.length > 2}
               disableCloseOnSelect
-              // renderTags={(param) => {
-              //   return param
-              // }}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -107,14 +114,14 @@ function Home(props) {
             />
           </Grid>
           <Grid item>
-             <Autocomplete
+            <Autocomplete
               multiple
               id="tags-standard"
               className={classes.drop_down}
               options={Array.from(authors.values())}
+              defaultValue={selectedAuthors}
               getOptionLabel={(option) => option}
               filterOptions={filterOptions}
-              // defaultValue={[top100Films[13]]}
               onChange={(e, newAuthors) => {
                 setSelectedAuthors(newAuthors)
               }}
@@ -131,11 +138,12 @@ function Home(props) {
             />
           </Grid>
           <Grid item>
-             <Autocomplete
+            <Autocomplete
               multiple
               id="tags-standard"
               className={classes.drop_down}
-              options={Array.from(books.values())}//.sort((a, b) => b.rating - a.rating)}
+              options={Array.from(books.values())}
+              defaultValue={selectedBooks}
               getOptionLabel={(option) => option.title}
               filterOptions={filterOptions}
               onChange={(e, newBooks) => {
@@ -156,7 +164,9 @@ function Home(props) {
           <Grid item>
             <Button className={classes.go_button} onClick={() => {
               if (selectedBooks.length > 0 || selectedGenres.length > 0 || selectedAuthors.length > 0) {
-                props.history.push('/books', {books: selectedBooks.length && selectedBooks, genres: selectedGenres.length && selectedGenres, authors: selectedAuthors.length && selectedAuthors})
+                props.history.push('/books', { books: selectedBooks.length && selectedBooks, genres: selectedGenres.length && selectedGenres, authors: selectedAuthors.length && selectedAuthors })
+              } else {
+                alert("Please input at least one field.")
               }
             }} variant="contained" color="primary" >
               Go / Search

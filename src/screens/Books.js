@@ -4,15 +4,18 @@ import { withRouter } from 'react-router';
 
 import { makeStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
+import { orderBy, uniqBy } from 'lodash';
 
 import Header from '../components/Header';
 import { Button, Card,  Checkbox, FormControlLabel, LinearProgress, TextField, Tooltip, Typography } from '@material-ui/core';
 import BooksTable from '../components/Table';
 import { getAuthor, extractData, getGenres, getBooks, getAuthorsGenres, getAuthorsBooks, getGenresBooks } from '../utils';
-import { COLORS } from '../utils/constants';
 
 const useStyles = makeStyles(theme => ({
   item: {
+    // '&:hover': {
+    //   background: 'red',
+    // },
     flexBasis: 'calc(100% / 2 - 10px)',
     margin: 5,
   },
@@ -39,8 +42,6 @@ function Books(props) {
 
   useEffect(() => {
     const { authors, books, genres } = extractData(props);
-    // TODO FILTER ALL IN THE index.js; see line 415
-
     if (authors && genres) {
       for (const author of authors) {
         for (const genre of genres) {
@@ -60,7 +61,7 @@ function Books(props) {
           getAuthorsBooks({ author, book: book.title })
             .then((data) => {
               setMeta((p) =>{
-                return [...p, ...data.filter(b => !p.some(b1 => b1.title === b.title))]
+                return [...p, ...data]
               })
               setLoadingBooks(false)
             })
@@ -105,9 +106,10 @@ function Books(props) {
       }
     } 
   }, [props])
+
   return (
     <React.Fragment>
-      <Header />
+      <Header title="Book Recommendations" />
       {loadingBooks && <LinearProgress />}
 
       <FormControlLabel
@@ -121,48 +123,53 @@ function Books(props) {
         }
         label="Toggle Tabular"
       />
-      {toggleTable ? (
-      // {/* TODO: choose a table or cards (if cards, then stack them 3 in a row) */}
-      <BooksTable loadingBooks={loadingBooks} meta={meta} />
-      ) : (
-          <div>
-            <TextField onChange={e => {
-              const value = e.target.value
-              setFilterValue(value)
-            }} id="filled-search" label="Search field" type="search" variant="outlined" />
-            <h3>Books</h3>
-            <Grid container alignContent="center" direction="row" style={{width: '75%', margin: '0 auto'}}>
-              {/* {meta && meta.sort((a, b) => b.rating - a.rating).map((v, i) => { */}
-              {meta && meta.sort((a) => a.color === COLORS.green  ? -1 : 1).map((v, i) => {
-                // console.log(v)
-                    if (!v.title) return null;
-                    return ((v.title.toLowerCase().includes(filterValue)) && <Card key={Math.random()} className={classes.item}>
-                      <Grid item style={{backgroundColor: v.color, height: '100%'}}>
-                        <Typography variant="h5" component="h2">{v.title}</Typography>
-                        <Typography className={classes.pos} color="textSecondary">
-                          {i} Author: {v.author}
-                        </Typography>
-                        <Typography className={classes.pos} color="textSecondary">
-                          Genre: {v.genre_name && v.genre_name[0]} 
-                          {v.genre_name && v.genre_name.length > 1 && <Tooltip title={v.genre_name.slice(1).join(', ')} placement="left-start">
-                            <Button> +{v.genre_name.length - 1} more</Button>
-                          </Tooltip>}
-                        </Typography>
-                        {v.rating && (<Typography className={classes.pos} color="textSecondary">
-                          Rating: {v.rating}
-                        </Typography>)}
-                        {v.similar && (<Typography className={classes.pos} color="textSecondary">
-                          Similar to book: {v.count}
-                        </Typography>)}
-                      </Grid>
-                    </Card>)
-                  })
+      <div style={{ width: '75%', margin: '0 auto' }}>
+        {toggleTable ? (
+          // {/* TODO: choose a table or cards (if cards, then stack them 3 in a row) */}
+          <BooksTable loadingBooks={loadingBooks} meta={uniqBy(orderBy(meta, 'order'), 'title')} />
+        ) : (
+            <div>
+              <TextField onChange={e => {
+                const value = e.target.value
+                setFilterValue(value)
+              }} id="filled-search" label="Search field" type="search" variant="outlined" />
+              <Typography variant="h4">Books</Typography>
+              {/* <div style={{textAlign: 'left'}}> */}
+              <Typography variant="h6"><span>Green &rarr; relavent.</span></Typography>
+              <Typography variant="h6">Orange &rarr; less relavent.</Typography>
+              <Typography variant="h6">Red &rarr; least relavent.</Typography>
+              {/* </div> */}
+              <Grid container alignContent="center" direction="row">
+                {meta && uniqBy(orderBy(meta, 'order'), 'title').map((v, i) => {
+                  if (!v.title) return null;
+                  return ((v.title.toLowerCase().includes(filterValue)) && <Card key={Math.random()} className={classes.item}>
+                    <Grid item style={{ backgroundColor: v.color, height: '100%' }}>
+                      <Typography variant="h5" component="h2">{v.title}</Typography>
+                      <Typography className={classes.pos} color="textSecondary">
+                        {i} Author: {v.author}
+                      </Typography>
+                      <Typography className={classes.pos} color="textSecondary">
+                        Genre: {v.genre_name && v.genre_name[0]}
+                        {v.genre_name && v.genre_name.length > 1 && <Tooltip title={v.genre_name.slice(1).join(', ')} placement="left-start">
+                          <Button> +{v.genre_name.length - 1} more</Button>
+                        </Tooltip>}
+                      </Typography>
+                      {v.rating && (<Typography className={classes.pos} color="textSecondary">
+                        Rating: {v.rating}
+                      </Typography>)}
+                      {v.similar && (<Typography className={classes.pos} color="textSecondary">
+                        Similar to book: {v.count}
+                      </Typography>)}
+                    </Grid>
+                  </Card>)
+                })
                 }
 
               </Grid>
 
-          </div>
-      )}
+            </div>
+          )}
+      </div>
     </React.Fragment>
   );
 }

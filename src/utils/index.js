@@ -1,11 +1,12 @@
 import axios from 'axios'
+import { find, matchesProperty } from 'lodash';
 import { COLORS } from './constants';
 import Library from './lib'
 
 const ENDPOINT = 'http://192.168.56.1:7200/repositories/project_1'
 
 
-async function queryBackend(query, {queryOnly, inf, color}={}) {
+async function queryBackend(query, {queryOnly, inf, color, order=0}={}) {
     const { data: { results: { bindings } } } = await axios.get(window.encodeURI(`${ENDPOINT}?query=${query}`), {
         headers: {'Accept':'application/sparql-results+json', 'Content-Type':'application/sparql-results+json'}
     })
@@ -20,10 +21,10 @@ async function queryBackend(query, {queryOnly, inf, color}={}) {
             let genre = result.genres.get(title) || []
             const genres = !genre.includes(genre_name) ? [...genre, genre_name] : genre
             result.genres.set(title, genres);
-            result.books.set(title, { title: title, author: result.authors.get(author_name), genre_name: genres, rating, color: color  || COLORS.green });
-            // result.genres.set(genre_name.value, genre_name.value);
+            result.books.set(title, { title: title, author: result.authors.get(author_name), genre_name: genres, rating, color: color  || COLORS.green, order});
         })
     } else {
+        order = order || 1
         bindings.forEach(b => {
             let { inf_title, inf_author_name, inf_genre_name, infby_title, infby_author_name, infby_genre_name } = extractValues(['inf_title', 'inf_author_name', 'inf_genre_name', 'infby_title', 'infby_author_name', 'infby_genre_name'], b)
             if (inf_title) {
@@ -31,14 +32,14 @@ async function queryBackend(query, {queryOnly, inf, color}={}) {
                 const genres = !genre.includes(inf_genre_name) ? [...genre, inf_genre_name] : genre
                 result.genres.set(inf_title, genres);
                 result.authors.set(inf_author_name, inf_author_name);
-                result.books.set(inf_title, { title: inf_title, author: result.authors.get(inf_author_name), genre_name: genres, color: color || COLORS.orange });
+                result.books.set(inf_title, { title: inf_title, author: result.authors.get(inf_author_name), genre_name: genres, color: color || COLORS.orange, order });
             }
             if (infby_title) {
                 let genre = result.genres.get(infby_title) || []
                 const genres = !genre.includes(infby_genre_name) ? [...genre, infby_genre_name] : genre
                 result.genres.set(infby_title, genres);
                 result.authors.set(infby_author_name, infby_author_name);
-                result.books.set(infby_title, { title: infby_title, author: result.authors.get(infby_author_name), genre_name: genres, color: color || COLORS.orange });
+                result.books.set(infby_title, { title: infby_title, author: result.authors.get(infby_author_name), genre_name: genres, color: color || COLORS.orange, order });
             }
         })
         result.normalize_books()
@@ -60,7 +61,12 @@ export function extractValues(keys, values) {
 }
 
 function parseName(name) {
-    return name.split(" ").join("_").split("'").join("")
+    return name.split(" ").join("_").replace(/[^a-zA-Z ]/g, '_')
+}
+
+function getOrder(color) {
+    const allColors = Object.values(COLORS);
+    return allColors.indexOf(color)
 }
 
 export async function GetAll(limit=100000) {
@@ -75,18 +81,18 @@ export async function GetAll(limit=100000) {
             a ?genre .
         FILTER (?genre != ol:Book)
         OPTIONAL { ?book ol:has_rating ?rating . }
-
-        ?genre ol:has_genre_name ?genre_name .
+        ?genre ol:has_genre_name ?org_genre_name .
+        bind(replace(?org_genre_name, "_", " ") as ?genre_name) 
     } limit ${limit}
     
 `
     const bindings = await queryBackend(query, {queryOnly: true});
     let result = new Library()
-    result.genres.set('Short Story', 'Short story');
-    result.genres.set('Comedic novel', 'Comedic novel');
-    result.books.set('Angel Fire', {title: 'Angel Fire', rating: 0});
-    result.authors.set('L.A. Weatherly', 'L.A. Weatherly');
-    result.authors.set('Anna Todd', 'Anna Todd');
+    // result.genres.set('Short Story', 'Short story');
+    // result.genres.set('Comedic novel', 'Comedic novel');
+    // result.books.set('Angel Fire', {title: 'Angel Fire', rating: 0});
+    // result.authors.set('L.A. Weatherly', 'L.A. Weatherly');
+    // result.authors.set('Anna Todd', 'Anna Todd');
     bindings.forEach(b => {
         const { title, author_name, genre_name, rating } = b;
         result.books.set(title.value, { title: title.value, rating: rating ? rating.value : null });
@@ -112,7 +118,7 @@ export async function getAuthor(author, {color, limit=100}={}) {
         bind(replace(?org_genre_name, "_", " ") as ?genre_name) 
     } ORDER BY DESC (?rating) limit ${limit}
     `
-    const result = await queryBackend(query, {color})
+    const result = await queryBackend(query, {color, order: getOrder(color)})
     const inf_books = await getInfAuthor(author);
 
     return [...result, ...inf_books]
@@ -165,7 +171,7 @@ export async function getGenres(genre, { limit = 100, color}={}) {
     	bind(replace(?genre_name1, "_", " ") as ?genre_name)
       } ORDER BY DESC (?rating) limit ${limit}
     `;
-    const result = await queryBackend(query, {color})
+    const result = await queryBackend(query, {color, order: getOrder(color)})
     return result
 }
 
@@ -186,11 +192,12 @@ export async function getBooks(book, {color, limit = 100}={}) {
         bind(replace(?genre_name1, "_", " ") as ?genre_name)   
     } ORDER BY DESC (?rating) limit ${limit}
     `;
-    const result = await queryBackend(query, {color})
-    const inf_books = await getBooksAuthors(book, {color: color && COLORS.red});
+    const result = await queryBackend(query, {color, order: getOrder(color)})
+    const inf_books = await getBooksAuthors(book, {color: color && COLORS.red, order: getOrder(color ? COLORS.red : color)});
     let inf_genres = []
-    if (!inf_books.some(r => r.title.includes(book)) && !result.some(r => r.title.includes(book))) {
-        inf_genres = await getGenres(book, {color: color && COLORS.red});
+    // TODO: conver all filtering functionality into lodash ones (ie in functions below)
+    if (!find(inf_books, matchesProperty('title', book)) && !find(result, matchesProperty('title', book))) {
+        inf_genres = await getGenres(book, {color: color && COLORS.red, order: getOrder(color ? COLORS.red : color)});
     }
     return [...result, ...inf_books, ...inf_genres]
 }
@@ -228,7 +235,7 @@ export async function getBooksAuthors(book, {color, limit = 100}={}) {
         }	
     } ORDER BY DESC (?rating) limit ${limit}
     `;
-    const result = await queryBackend(query, {inf: true, color})
+    const result = await queryBackend(query, {inf: true, color, order: getOrder(color)})
     return result
 }
 
@@ -248,7 +255,7 @@ export async function getBooksGenres(book, limit = 100) {
         bind(replace(?genre_name1, "_", " ") as ?genre_name) 
     } order by desc(?rating) LIMIT ${limit}
     `
-    const result = await queryBackend(query, {color: COLORS.red })
+    const result = await queryBackend(query, {color: COLORS.red, order: getOrder(COLORS.red) })
     return result
 }
 
@@ -273,7 +280,7 @@ export async function getAuthorsGenres({author, genre}, limit = 100) {
     `
     const result = await queryBackend(query)
     const inf_books = await getAuthorsGenresInf({author, genre}, {inf: true})
-    const genre_books = (await getGenres(genre, {color: COLORS.red})).filter(b => result.some(r => !b.title.includes(r.title)))
+    const genre_books = (await getGenres(genre, {color: COLORS.red, order: getOrder(COLORS.red)})).filter(b => result.some(r => !b.title.includes(r.title)))
     return [...result, ...inf_books, ...genre_books,]
 }
 
@@ -334,9 +341,9 @@ export async function getAuthorsBooks({author, book}, limit = 100) {
     }order by desc(?rating) limit ${limit}
     `
     const result = await queryBackend(query)
-    const author_books = (await getAuthor(author, { color: COLORS.orange })).filter(a => result.every(b => !a.title.includes(b.title)))
-    const book_books = (await getBooks(book, { color: COLORS.orange })).filter(a => result.every(b => !a.title.includes(b.title)))
-    const inf_books = (await getAuthorsBooksInf({ book }, { color: COLORS.orange })).filter(a => [...author_books, ...book_books].some(b => !a.title.includes(b.title)))
+    const author_books = (await getAuthor(author, { color: COLORS.orange, order: getOrder(COLORS.orange) })).filter(a => result.every(b => !a.title.includes(b.title)))
+    const book_books = (await getBooks(book, { color: COLORS.orange, georder: getOrder(COLORS.orange) })).filter(a => result.every(b => !a.title.includes(b.title)))
+    const inf_books = (await getAuthorsBooksInf({ book }, { color: COLORS.orange, order: getOrder(COLORS.orange)  })).filter(a => [...author_books, ...book_books].some(b => !a.title.includes(b.title)))
     return [...result, ...author_books, ...book_books, ...inf_books]
 }
 
@@ -374,7 +381,7 @@ export async function getAuthorsBooksInf({ book }, limit = 100) {
         }
     }
     `
-    const result = await queryBackend(query, {inf: true, color: COLORS.red})
+    const result = await queryBackend(query, {inf: true, color: COLORS.red, order: getOrder(COLORS.red) })
     return result
 }
 
@@ -396,8 +403,8 @@ export async function getGenresBooks({genre, book}, limit = 100) {
     `
     const result = await queryBackend(query)
     const inf_books = await getGenresBooksInf({genre, book})
-    const genre_books = await getGenres(genre, {color: COLORS.red})
-    const book_books = await (await getBooks(book, {color: COLORS.red})).filter(b => !b.title.includes(book))
+    const genre_books = await getGenres(genre, {color: COLORS.red, order: getOrder(COLORS.red)})
+    const book_books = await (await getBooks(book, {color: COLORS.red, order: getOrder(COLORS.red)})).filter(b => !b.title.includes(book))
     // const book_books = await getGenresBooksOnly(book, {color: COLORS.red})
     return [...result, ...inf_books, ...genre_books, ...book_books]
 }

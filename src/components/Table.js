@@ -42,10 +42,9 @@ function BooksTable({meta, loadingBooks}) {
         icons={tableIcons}
         columns={[
             { title: 'Title', field: 'title', cellStyle: (_, obj) => ({backgroundColor: obj.color}) },
-            { title: 'Author', field: 'author' },
-            { title: 'Genre', field: 'genre_name' },
-            { title: 'Rating', field: 'rating', type: 'numeric' },
-            { title: 'Similar to', field: 'count' }
+            { title: 'Author', field: 'author', cellStyle: (_, obj) => ({backgroundColor: obj.color})  },
+            { title: 'Genre', field: 'genre_name', cellStyle: (_, obj) => ({backgroundColor: obj.color})  },
+            { title: 'Rating', field: 'rating', type: 'numeric', cellStyle: (_, obj) => ({backgroundColor: obj.color})  },
         ]}
         data={meta}
         title="Books Recommendation"

@@ -43,7 +43,7 @@ function Header(props) {
             className={classes.menuButton}
             color="inherit"
             aria-label="menu"
-            onClick={() => props.history.push('/')}
+            onClick={() => props.history.push('/', props.history.location.state)}
           >
             <HomeIcon />
           </IconButton>
