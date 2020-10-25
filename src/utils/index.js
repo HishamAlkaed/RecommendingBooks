@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { find, matchesProperty } from 'lodash';
+import { find, get, matchesProperty } from 'lodash';
 import { COLORS } from './constants';
 import Library from './lib'
 
@@ -16,30 +16,30 @@ async function queryBackend(query, {queryOnly, inf, color, order=0}={}) {
     const result = new Library()
     if (!inf) {
         bindings.forEach(b => {
-            const { title, author_name, genre_name, rating } = extractValues(['title', 'author_name', 'genre_name', 'rating'], b);
+            const { title, author_name, genre_name, rating, url } = extractValues(['title', 'author_name', 'genre_name', 'rating', 'url'], b);
             result.authors.set(author_name, author_name);
             let genre = result.genres.get(title) || []
             const genres = !genre.includes(genre_name) ? [...genre, genre_name] : genre
             result.genres.set(title, genres);
-            result.books.set(title, { title: title, author: result.authors.get(author_name), genre_name: genres, rating, color: color  || COLORS.green, order});
+            result.books.set(title, { title: title, author: result.authors.get(author_name), genre_name: genres, rating, color: color  || COLORS.green, order, url});
         })
     } else {
         order = order || 1
         bindings.forEach(b => {
-            let { inf_title, inf_author_name, inf_genre_name, infby_title, infby_author_name, infby_genre_name } = extractValues(['inf_title', 'inf_author_name', 'inf_genre_name', 'infby_title', 'infby_author_name', 'infby_genre_name'], b)
+            let { inf_title, inf_author_name, inf_genre_name, inf_rating, inf_url, infby_title, infby_author_name, infby_genre_name, infby_rating, infby_url } = extractValues(['inf_title', 'inf_author_name', 'inf_genre_name', 'inf_rating', 'inf_url', 'infby_title', 'infby_author_name', 'infby_genre_name', 'infby_rating', 'infby_url'], b)
             if (inf_title) {
                 let genre = result.genres.get(inf_title) || []
                 const genres = !genre.includes(inf_genre_name) ? [...genre, inf_genre_name] : genre
                 result.genres.set(inf_title, genres);
                 result.authors.set(inf_author_name, inf_author_name);
-                result.books.set(inf_title, { title: inf_title, author: result.authors.get(inf_author_name), genre_name: genres, color: color || COLORS.orange, order });
+                result.books.set(inf_title, { title: inf_title, author: result.authors.get(inf_author_name), genre_name: genres, color: color || COLORS.orange, order, inf_rating, inf_url });
             }
             if (infby_title) {
                 let genre = result.genres.get(infby_title) || []
                 const genres = !genre.includes(infby_genre_name) ? [...genre, infby_genre_name] : genre
                 result.genres.set(infby_title, genres);
                 result.authors.set(infby_author_name, infby_author_name);
-                result.books.set(infby_title, { title: infby_title, author: result.authors.get(infby_author_name), genre_name: genres, color: color || COLORS.orange, order });
+                result.books.set(infby_title, { title: infby_title, author: result.authors.get(infby_author_name), genre_name: genres, color: color || COLORS.orange, order, infby_rating, infby_url });
             }
         })
         result.normalize_books()
@@ -48,7 +48,7 @@ async function queryBackend(query, {queryOnly, inf, color, order=0}={}) {
 }
 
 export function extractData(props) {
-    return {authors: props.location.state.authors, books: props.location.state.books, genres: props.location.state.genres}
+    return {authors: get(props, 'history.location.state.authors', []), books: get(props, 'history.location.state.books', []), genres: get(props, 'history.location.state.genres', [])}
 }
 
 export function extractValues(keys, values) {
@@ -107,11 +107,12 @@ export async function getAuthor(author, {color, limit=100}={}) {
     const query = `
     PREFIX ol: <http://www.semanticweb.org/OwnersLib/>
     PREFIX dbo: <http://dbpedia.org/ontology/>
-    select DISTINCT ?title ?author_name ?genre_name ?rating where { 
+    select DISTINCT ?title ?author_name ?genre_name ?rating ?url where { 
         ol:${parseName(author)} a ol:Author;
                         ol:has_written ?book ;
                         owl:NamedIndividual ?author_name .
         ?book ol:has_title ?title ; ol:has_author ?author ; a ?genre.
+        OPTIONAL {?book ol:has_full_URI ?url .}
         OPTIONAL { ?book ol:has_rating ?rating . } 
         ?genre ol:has_genre_name ?org_genre_name.
         filter (!contains(str(?org_genre_name), "Book"))
@@ -128,7 +129,7 @@ export async function getInfAuthor(author, limit=100) {
     const query = `
     PREFIX ol: <http://www.semanticweb.org/OwnersLib/>
     PREFIX dbo: <http://dbpedia.org/ontology/>
-    select ?inf_title ?inf_author_name ?inf_genre_name ?infby_title ?infby_author_name ?infby_genre_name  where { 
+    select ?inf_title ?inf_author_name ?inf_genre_name ?inf_url ?infby_title ?infby_author_name ?infby_genre_name ?infby_url where { 
         { 
             ol:${parseName(author)} dbo:influenced ?inf_author . 
             ?inf_book dbo:author ?inf_author . 
@@ -136,6 +137,7 @@ export async function getInfAuthor(author, limit=100) {
             ?inf_book ol:has_title ?inf_title .
             OPTIONAL {
                 ?inf_book rdf:type ?inf_genre . 
+                OPTIONAL {?inf_book ol:has_full_URI ?inf_url .}
                 ?inf_genre ol:has_genre_name ?inf_genre_name.
                 filter (!contains(str(?inf_genre_name), "Book"))
             }
@@ -146,6 +148,7 @@ export async function getInfAuthor(author, limit=100) {
             ?infby_book ol:has_title ?infby_title .
             OPTIONAL {
                 ?infby_book rdf:type ?infby_genre. 
+                OPTIONAL {?infby_book ol:has_full_URI ?infby_url .}
                 ?infby_genre ol:has_genre_name ?infby_genre_name .
                 filter (!contains(str(?infby_genre_name), "Book"))
             }
@@ -160,11 +163,11 @@ export async function getInfAuthor(author, limit=100) {
 export async function getGenres(genre, { limit = 100, color}={}) {
     const query = `
       PREFIX ol: <http://www.semanticweb.org/OwnersLib/>
-      select ?title ?genre_name ?author_name ?rating where { 
+      select ?title ?genre_name ?author_name ?rating ?url where { 
         ?book a ol:${parseName(genre)} ;
             ol:has_title ?title ;
             ol:has_author ?author .
-      	OPTIONAL {?book ol:has_rating ?rating . }
+      	OPTIONAL {?book ol:has_rating ?rating ; ol:has_full_URI ?url }
         ?author owl:NamedIndividual ?author_name .            
         ol:${parseName(genre)}  ol:has_genre_name ?genre_name1 .
         filter (!contains(str(?genre_name1), "Book"))
@@ -179,14 +182,14 @@ export async function getBooks(book, {color, limit = 100}={}) {
     const query = `
     PREFIX ol: <http://www.semanticweb.org/OwnersLib/>
 
-    select DISTINCT ?title ?author_name ?genre_name ?rating where{
+    select DISTINCT ?title ?author_name ?genre_name ?rating ?url where{
         ol:${parseName(book)} ol:has_author ?author .
         ?author owl:NamedIndividual ?author_name .
         ?author ol:has_written ?author_book .
         ?author_book ol:has_title ?title;
             a ?genre .
         ?genre ol:has_genre_name ?genre_name1 .
-      	OPTIONAL { ?author_book ol:has_rating ?rating . }
+      	OPTIONAL { ?author_book ol:has_rating ?rating ; ol:has_full_URI ?url }
         filter (!contains(str(?genre_name1), "Book"))
         filter (?book != ol:${parseName(book)})
         bind(replace(?genre_name1, "_", " ") as ?genre_name)   
@@ -206,15 +209,16 @@ export async function getBooksAuthors(book, {color, limit = 100}={}) {
     const query = `
     PREFIX ol: <http://www.semanticweb.org/OwnersLib/>
     PREFIX dbo: <http://dbpedia.org/ontology/>
-    select distinct ?infby_author_name ?infby_title ?infby_genre_name ?inf_author_name ?inf_title ?inf_genre_name where{
+    select distinct ?infby_author_name ?infby_title ?infby_genre_name ?infby_url ?inf_author_name ?inf_title ?inf_genre_name ?inf_url where{
         ol:${parseName(book)} ol:has_author ?author.
         {
             ?author dbo:influenced ?inf_author . 
         ?inf_book dbo:author ?inf_author ; 
             ol:has_title ?inf_title;
                     a ?genre1.
-            ?genre1 ol:has_genre_name ?inf_genre_name1.
-            ?inf_author owl:NamedIndividual ?inf_author_name.
+        OPTIONAL {?inf_book ol:has_full_URI ?inf_url .}
+        ?genre1 ol:has_genre_name ?inf_genre_name1.
+        ?inf_author owl:NamedIndividual ?inf_author_name.
         filter (!contains(str(?inf_book), str(?inf_author)))
         filter (!contains(str(?inf_genre_name1), "Book"))
         bind(replace(?inf_genre_name1, "_", " ") as ?inf_genre_name) 
@@ -226,6 +230,7 @@ export async function getBooksAuthors(book, {color, limit = 100}={}) {
             ?infby_book dbo:author ?infby_author;
                 ol:has_title ?infby_title;
                         a ?genre2.
+            OPTIONAL {?infby_book ol:has_full_URI ?infby_url .}
             ?genre2 ol:has_genre_name ?infby_genre_name1.
             ?infby_author owl:NamedIndividual ?infby_author_name.
         filter (!contains(str(?infby_book), str(?infby_author)))
@@ -243,13 +248,13 @@ export async function getBooksGenres(book, limit = 100) {
     const query = `
     PREFIX ol: <http://www.semanticweb.org/OwnersLib/>
     PREFIX dbo: <http://dbpedia.org/ontology/>
-    select ?title ?genre_name ?author_name ?rating where{
+    select ?title ?genre_name ?author_name ?rating ?url where{
         ol:${parseName(book)} a ?genre.
         ?genre ol:has_genre_name ?genre_name1.
         ?book a ?genre;
             ol:has_title ?title;
             ol:has_author ?author.
-        optional{?book ol:has_rating ?rating}
+        optional{?book ol:has_rating ?rating ; ol:has_full_URI ?url .}
         ?author owl:NamedIndividual ?author_name.
         filter (!contains(str(?genre_name1), "Book"))
         bind(replace(?genre_name1, "_", " ") as ?genre_name) 
@@ -265,14 +270,14 @@ export async function getAuthorsGenres({author, genre}, limit = 100) {
     PREFIX ol: <http://www.semanticweb.org/OwnersLib/>
     PREFIX dbo: <http://dbpedia.org/ontology/>
     PREFIX dbr: <http://dbpedia.org/resource/>
-    select ?title ?genre_name ?author_name ?rating where {    
+    select ?title ?genre_name ?author_name ?rating ?url where {    
             ?book dbo:author ol:${parseName(author)} . 
             ol:${parseName(author)} owl:NamedIndividual ?author_name.
             
             ?book a ol:${parseName(genre)} . 
             ol:${parseName(genre)} ol:has_genre_name ?genre_name1.
             ?book ol:has_title ?title .
-        optional{?book ol:has_rating ?rating}
+        optional{?book ol:has_rating ?rating ; ol:has_full_URI ?url .}
         
         filter (!contains(str(?genre_name1), "Book"))
         bind(replace(?genre_name1, "_", " ") as ?genre_name)
@@ -288,7 +293,7 @@ export async function getAuthorsGenresInf({author, genre}, limit=100) {
     const query = `
     PREFIX ol: <http://www.semanticweb.org/OwnersLib/>
     PREFIX dbo: <http://dbpedia.org/ontology/>
-    select ?inf_title ?inf_author_name ?inf_genre_name ?inf_rating ?infby_title ?infby_author_name ?infby_genre_name ?infby_rating where { 
+    select ?inf_title ?inf_author_name ?inf_genre_name ?inf_rating ?inf_url ?infby_title ?infby_author_name ?infby_genre_name ?infby_rating ?infby_url where { 
         { 
             ol:${parseName(author)} dbo:influenced ?inf_author . 
             ?inf_book dbo:author ?inf_author . 
@@ -297,7 +302,7 @@ export async function getAuthorsGenresInf({author, genre}, limit=100) {
             ?inf_book a ol:${parseName(genre)} . 
             ol:${parseName(genre)} ol:has_genre_name ?inf_genre_name1.
             ?inf_book ol:has_title ?inf_title .
-            optional{?inf_book ol:has_rating ?inf_rating}
+            optional{?inf_book ol:has_rating ?inf_rating; ol:has_full_URI ?inf_url .}
             filter (!contains(str(?inf_genre_name1), "Book"))
             bind(replace(?inf_genre_name1, "_", " ") as ?inf_genre_name)
 
@@ -309,7 +314,7 @@ export async function getAuthorsGenresInf({author, genre}, limit=100) {
             ?infby_book a ol:${parseName(genre)} .
             ?infby_book ol:has_title ?infby_title . 
             ol:${parseName(genre)} ol:has_genre_name ?infby_genre_name1.
-            optional{?infby_book ol:has_rating ?infby_rating}
+            optional{?infby_book ol:has_rating ?infby_rating ; ol:has_full_URI ?infby_url .}
             filter (!contains(str(?infby_genre_name1), "Book"))
             bind(replace(?infby_genre_name1, "_", " ") as ?infby_genre_name)
         }
@@ -324,7 +329,7 @@ export async function getAuthorsBooks({author, book}, limit = 100) {
     PREFIX ol: <http://www.semanticweb.org/OwnersLib/>
     PREFIX dbo: <http://dbpedia.org/ontology/>
     PREFIX dbr: <http://dbpedia.org/resource/>
-    select ?title ?genre_name ?author_name ?rating where {                 
+    select ?title ?genre_name ?author_name ?rating ?url where {                 
          ol:${parseName(author)} a ol:Author; 
                     owl:NamedIndividual ?author_name;
                     ol:has_written ?book .
@@ -334,7 +339,7 @@ export async function getAuthorsBooks({author, book}, limit = 100) {
             ol:has_title ?title;
             ol:has_author ?author.
         ?author owl:NamedIndividual ?author_name.
-        OPTIONAL { ?book ol:has_rating ?rating . } 
+        OPTIONAL { ?book ol:has_rating ?rating ; ol:has_full_URI ?url } 
         filter (!contains(str(?genre_name1), "Book"))
         bind(replace(?genre_name1, "_", " ") as ?genre_name) 
 
@@ -352,7 +357,7 @@ export async function getAuthorsBooksInf({ book }, limit = 100) {
     PREFIX ol: <http://www.semanticweb.org/OwnersLib/>
     PREFIX dbo: <http://dbpedia.org/ontology/>
     PREFIX dbr: <http://dbpedia.org/resource/>
-    Select ?inf_title ?inf_author_name ?inf_genre_name ?inf_rating ?nfby_title ?infby_author_name ?infby_genre_name ?infby_rating WHERE{
+    Select ?inf_title ?inf_author_name ?inf_genre_name ?inf_rating ?inf_url ?nfby_title ?infby_author_name ?infby_genre_name ?infby_rating ?infby_url WHERE{
         dbr:${parseName(book)} ol:has_author ?author; 
                                 a ?book_genre.
         ?book_genre ol:has_genre_name ?some_name.
@@ -363,7 +368,7 @@ export async function getAuthorsBooksInf({ book }, limit = 100) {
         ?inf_book ol:has_title ?inf_title;
             a ?book_genre.
         ?book_genre ol:has_genre_name ?inf_genre_name1.
-            optional{?inf_book ol:has_rating ?inf_rating}
+            optional{?inf_book ol:has_rating ?inf_rating; ol:has_full_URI ?inf_url .}
         bind(replace(?inf_genre_name1, "_", " ") as ?inf_genre_name) 
             filter (!contains(str(?inf_genre_name), "Book"))
         }
@@ -375,7 +380,7 @@ export async function getAuthorsBooksInf({ book }, limit = 100) {
         ?infby_book ol:has_title ?infby_title;
             a ?book_genre.
         ?book_genre ol:has_genre_name ?infby_genre_name1.
-            optional{?infby_book ol:has_rating ?infby_rating}
+            optional{?infby_book ol:has_rating ?infby_rating; ol:has_full_URI ?infby_url .}
         bind(replace(?infby_genre_name1, "_", " ") as ?infby_genre_name)
             filter (!contains(str(?infby_genre_name), "Book"))
         }
@@ -389,14 +394,14 @@ export async function getGenresBooks({genre, book}, limit = 100) {
     const query = `
     PREFIX ol: <http://www.semanticweb.org/OwnersLib/>
     PREFIX dbr: <http://dbpedia.org/resource/>
-    select Distinct ?title ?author_name ?genre_name ?rating where{
+    select Distinct ?title ?author_name ?genre_name ?rating ?url where{
         ol:${parseName(genre)} ol:has_genre_name ?genre_name1.
         ol:${parseName(book)} ol:has_author ?author. 
         ?author ol:has_written ?book;
                 owl:NamedIndividual ?author_name.
         ?book a ol:${parseName(genre)};
             ol:has_title ?title.
-        optional{?book ol:has_rating ?rating}
+        optional{?book ol:has_rating ?rating; ol:has_full_URI ?url .}
         bind(replace(?genre_name1, "_", " ") as ?genre_name) 
         filter (!contains(str(?genre_name), "Book")) 
     } order by desc(?rating)
@@ -414,8 +419,8 @@ export async function getGenresBooksInf({ genre, book }, limit = 100) {
     PREFIX ol: <http://www.semanticweb.org/OwnersLib/>
     PREFIX dbr: <http://dbpedia.org/resource/>
     PREFIX dbo: <http://dbpedia.org/ontology/>
-    select Distinct ?inf_title ?inf_author_name ?inf_genre_name ?inf_rating
-    ?infby_title ?infby_author_name ?infby_genre_name ?infby_rating where{
+    select Distinct ?inf_title ?inf_author_name ?inf_genre_name ?inf_rating ?inf_url
+    ?infby_title ?infby_author_name ?infby_genre_name ?infby_rating ?infby_url where{
         ol:${parseName(genre)} ol:has_genre_name ?genre_name. 
         ol:${parseName(book)} ol:has_author ?author.
         {
@@ -425,7 +430,7 @@ export async function getGenresBooksInf({ genre, book }, limit = 100) {
         ?inf_book a ol:${parseName(genre)};
             ol:has_title ?inf_title.
         ol:${parseName(genre)} ol:has_genre_name ?inf_genre_name1.
-        optional{?inf_book ol:has_rating ?inf_rating}
+        optional{?inf_book ol:has_rating ?inf_rating; ol:has_full_URI ?inf_url .}
         bind(replace(?inf_genre_name1, "_", " ") as ?inf_genre_name) 
             filter (!contains(str(?inf_genre_name), "Book")) }
         union{
@@ -435,7 +440,7 @@ export async function getGenresBooksInf({ genre, book }, limit = 100) {
         ?infby_book a ol:${parseName(genre)};
             ol:has_title ?infby_title.
         ol:${parseName(genre)} ol:has_genre_name ?infby_genre_name1.
-        optional{?infby_book ol:has_rating ?infby_rating}
+        optional{?infby_book ol:has_rating ?infby_rating; ol:has_full_URI ?infby_url }
         bind(replace(?infby_genre_name1, "_", " ") as ?infby_genre_name) 
             filter (!contains(str(?infby_genre_name), "Book"))
         }

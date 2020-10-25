@@ -4,7 +4,7 @@ import { withRouter } from 'react-router';
 
 import { makeStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
-import { orderBy, uniqBy } from 'lodash';
+import { orderBy, some, uniqBy } from 'lodash';
 
 import Header from '../components/Header';
 import { Button, Card,  Checkbox, FormControlLabel, LinearProgress, TextField, Tooltip, Typography } from '@material-ui/core';
@@ -18,6 +18,15 @@ const useStyles = makeStyles(theme => ({
     // },
     flexBasis: 'calc(100% / 2 - 10px)',
     margin: 5,
+  },
+  hover: {
+    transition: '400ms',
+    '&:hover': {
+      background: '#b9a4a4 !important',
+    }
+  },
+  link: {
+    color: 'black',
   },
   paper: {
     height: 140,
@@ -42,7 +51,7 @@ function Books(props) {
 
   useEffect(() => {
     const { authors, books, genres } = extractData(props);
-    if (authors && genres) {
+    if (some(authors) && some(genres)) {
       for (const author of authors) {
         for (const genre of genres) {
           getAuthorsGenres({ author, genre })
@@ -55,7 +64,7 @@ function Books(props) {
         }
       }
     } 
-    if (authors && books) {
+    if (some(authors) && some(books)) {
       for (const author of authors) {
         for (const book of books) {
           getAuthorsBooks({ author, book: book.title })
@@ -68,7 +77,7 @@ function Books(props) {
         }
       }
     }
-    if (genres && books) {
+    if (some(genres) && some(books)) {
       for (const genre of genres) {
         for (const book of books) {
           getGenresBooks({ genre, book: book.title })
@@ -80,7 +89,7 @@ function Books(props) {
       }
 
     } 
-    if (authors && !(books && genres)) {
+    if (some(authors) && !(some(books) && some(genres))) {
       for (const author of authors) {
         getAuthor(author)
           .then((data) => {
@@ -88,7 +97,7 @@ function Books(props) {
             setLoadingBooks(false)
           })
       }
-    } else if (genres && !(books && authors)) {
+    } else if (some(genres) && !(some(books) && some(authors))) {
       for (const genre of genres) {
         getGenres(genre)
           .then((data) => {
@@ -96,7 +105,7 @@ function Books(props) {
             setLoadingBooks(false)
           })
       }
-    } else if (books && !(genres && authors)) {
+    } else if (some(books) && !(some(genres) && some(authors))) {
       for (const book of books) {
         getBooks(book.title)
           .then((data) => {
@@ -143,10 +152,10 @@ function Books(props) {
                 {meta && uniqBy(orderBy(meta, 'order'), 'title').map((v, i) => {
                   if (!v.title) return null;
                   return ((v.title.toLowerCase().includes(filterValue)) && <Card key={Math.random()} className={classes.item}>
-                    <Grid item style={{ backgroundColor: v.color, height: '100%' }}>
-                      <Typography variant="h5" component="h2">{v.title}</Typography>
+                    <Grid item className={classes.hover} style={{ backgroundColor: v.color, height: '100%' }}>
+                      <Typography variant="h5" className={classes.link} component="a" href={v.url} target="blank">{v.title}</Typography>
                       <Typography className={classes.pos} color="textSecondary">
-                        {i} Author: {v.author}
+                        {i + 1} Author: {v.author}
                       </Typography>
                       <Typography className={classes.pos} color="textSecondary">
                         Genre: {v.genre_name && v.genre_name[0]}

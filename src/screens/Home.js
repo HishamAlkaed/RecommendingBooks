@@ -10,7 +10,7 @@ import TextField from '@material-ui/core/TextField';
 import Autocomplete, {createFilterOptions} from '@material-ui/lab/Autocomplete';
 
 
-import { GetAll } from '../utils/index'
+import { extractData, extractValues, GetAll } from '../utils/index'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -60,16 +60,16 @@ function Home(props) {
   const [genres, setGenres] = useState([])
   const [books, setBooks] = useState([])
   const [authors, setAuthors] = useState([])
-  const [selectedBooks, setSelectedBooks] = useState(props.history.location.state.books || [])
-  const [selectedAuthors, setSelectedAuthors] = useState(props.history.location.state.authors || [])
-  const [selectedGenres, setSelectedGenres] = useState(props.history.location.state.genres || [])
+  const [selectedBooks, setSelectedBooks] = useState(extractData(props).books)
+  const [selectedAuthors, setSelectedAuthors] = useState(extractData(props).authors)
+  const [selectedGenres, setSelectedGenres] = useState(extractData(props).genres)
 
   useEffect(() => {
     GetAll()
-    .then(({books, genres, authors}) => {
-      setBooks(books)
-      setGenres(genres)
-      setAuthors(authors)
+    .then(({books: apiBooks, genres: apiGenres, authors: apiAuthors}) => {
+      setBooks(Array.from(apiBooks.values()))
+      setGenres(Array.from(apiGenres.values()))
+      setAuthors(Array.from(apiAuthors.values()))
     })
   }, [])
   return (
@@ -81,8 +81,8 @@ function Home(props) {
           className={classes.grid}
         >
           <Grid item>
-            <Typography component="h2" className={[classes.drop_down, classes.info]}>
-              Start choosing your favorite authors (among {authors.size}), genres (among {genres.size}) and books (among {books.size}) in order to get the best recommendations!
+            <Typography component="h2" className={`${classes.drop_down} ${classes.info}`}>
+              Start choosing your favorite authors (among {authors.length}), genres (among {genres.length}) and books (among {books.length}) in order to get the best recommendations!
               </Typography>
           </Grid>
           <Grid item>
@@ -90,7 +90,7 @@ function Home(props) {
               multiple
               id="tags-standard"
               className={classes.drop_down}
-              options={Array.from(genres.values())}
+              options={genres}
               defaultValue={selectedGenres}
               getOptionLabel={(option) => option}
               filterOptions={filterOptions}
@@ -118,7 +118,7 @@ function Home(props) {
               multiple
               id="tags-standard"
               className={classes.drop_down}
-              options={Array.from(authors.values())}
+              options={authors}
               defaultValue={selectedAuthors}
               getOptionLabel={(option) => option}
               filterOptions={filterOptions}
@@ -142,7 +142,7 @@ function Home(props) {
               multiple
               id="tags-standard"
               className={classes.drop_down}
-              options={Array.from(books.values())}
+              options={books}
               defaultValue={selectedBooks}
               getOptionLabel={(option) => option.title}
               filterOptions={filterOptions}
@@ -164,7 +164,7 @@ function Home(props) {
           <Grid item>
             <Button className={classes.go_button} onClick={() => {
               if (selectedBooks.length > 0 || selectedGenres.length > 0 || selectedAuthors.length > 0) {
-                props.history.push('/books', { books: selectedBooks.length && selectedBooks, genres: selectedGenres.length && selectedGenres, authors: selectedAuthors.length && selectedAuthors })
+                props.history.push('/books', { books: selectedBooks, genres: selectedGenres, authors: selectedAuthors })
               } else {
                 alert("Please input at least one field.")
               }
