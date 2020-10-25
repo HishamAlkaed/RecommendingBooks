@@ -82,7 +82,7 @@ function Home(props) {
         >
           <Grid item>
             <Typography component="h2" className={[classes.drop_down, classes.info]}>
-              Start choosing your favorite authors (among {authors.size}), genres (among {genres.size}) and books (among {books.size}) in order to get the best recommendations!
+              Choose your favorite author/s (among {authors.size}), genre/s (among {genres.size}) and book/s (among {books.size}) in order to get the best recommendations!
               </Typography>
           </Grid>
           <Grid item>

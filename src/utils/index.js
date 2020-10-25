@@ -3,7 +3,7 @@ import { find, matchesProperty } from 'lodash';
 import { COLORS } from './constants';
 import Library from './lib'
 
-const ENDPOINT = 'http://192.168.56.1:7200/repositories/project_1'
+const ENDPOINT = 'http://192.168.2.6:7200/repositories/Final3_3'
 
 
 async function queryBackend(query, {queryOnly, inf, color, order=0}={}) {
@@ -82,7 +82,8 @@ export async function GetAll(limit=100000) {
         FILTER (?genre != ol:Book)
         OPTIONAL { ?book ol:has_rating ?rating . }
         ?genre ol:has_genre_name ?org_genre_name .
-        bind(replace(?org_genre_name, "_", " ") as ?genre_name) 
+        bind(replace(?org_genre_name, "_", " ") as ?genre_name)
+        filter(!contains(?genre_name, "See top shelves")) 
     } limit ${limit}
     
 `
