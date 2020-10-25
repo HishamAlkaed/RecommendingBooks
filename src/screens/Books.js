@@ -117,64 +117,66 @@ function Books(props) {
     <React.Fragment>
       <Header title="Book Recommendations" />
       {loadingBooks && <LinearProgress />}
+      {!loadingBooks && meta.length < 1 ? (<Typography variant="h5">No results found. Please try again!</Typography>) : (<>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={toggleTable}
+              onChange={() => setToggleTable(!toggleTable)}
+              name="checkedB"
+              color="primary"
+            />
+          }
+          label="Toggle Tabular"
+        />
+        <div style={{ width: '75%', margin: '0 auto' }}>
+          {toggleTable ? (
+            // {/* TODO: choose a table or cards (if cards, then stack them 3 in a row) */}
+            <BooksTable loadingBooks={loadingBooks} meta={uniqBy(orderBy(meta, 'order'), 'title')} />
+          ) : (
+              <div>
+                <TextField onChange={e => {
+                  const value = e.target.value
+                  setFilterValue(value)
+                }} id="filled-search" label="Search field" type="search" variant="outlined" />
+                <Typography variant="h4">Books</Typography>
+                {/* <div style={{textAlign: 'left'}}> */}
+                <Typography variant="h6"><span style={{ background: '#9bdeac', margin: 12 }}>Most relevent.</span>
+                  <span style={{ background: '#f5d47a', margin: 12 }}>Less relevent.</span>
+                  <span style={{ background: '#e7305b', margin: 12 }}>Least relevent.</span></Typography>
+                <Grid container alignContent="center" direction="row">
+                  {meta && uniqBy(orderBy(meta, 'order'), 'title').map((v, i) => {
+                    if (!v.title) return null;
+                    return ((v.title.toLowerCase().includes(filterValue)) && <Card key={Math.random()} className={classes.item}>
+                      <Grid item className={classes.hover} style={{ backgroundColor: v.color, height: '100%' }}>
+                        <Typography variant="h5" className={classes.link} component="a" href={v.url} target="blank">{v.title}</Typography>
+                        <Typography className={classes.pos} color="textSecondary">
+                          {i + 1} Author: {v.author}
+                        </Typography>
+                        <Typography className={classes.pos} color="textSecondary">
+                          Genre: {v.genre_name && v.genre_name[0]}
+                          {v.genre_name && v.genre_name.length > 1 && <Tooltip title={v.genre_name.slice(1).join(', ')} placement="left-start">
+                            <Button> +{v.genre_name.length - 1} more</Button>
+                          </Tooltip>}
+                        </Typography>
+                        {v.rating && (<Typography className={classes.pos} color="textSecondary">
+                          Rating: {v.rating}
+                        </Typography>)}
+                        {v.similar && (<Typography className={classes.pos} color="textSecondary">
+                          Similar to book: {v.count}
+                        </Typography>)}
+                      </Grid>
+                    </Card>)
+                  })
+                  }
 
-      <FormControlLabel
-        control={
-          <Checkbox
-            checked={toggleTable}
-            onChange={() => setToggleTable(!toggleTable)}
-            name="checkedB"
-            color="primary"
-          />
-        }
-        label="Toggle Tabular"
-      />
-      <div style={{ width: '75%', margin: '0 auto' }}>
-        {toggleTable ? (
-          // {/* TODO: choose a table or cards (if cards, then stack them 3 in a row) */}
-          <BooksTable loadingBooks={loadingBooks} meta={uniqBy(orderBy(meta, 'order'), 'title')} />
-        ) : (
-            <div>
-              <TextField onChange={e => {
-                const value = e.target.value
-                setFilterValue(value)
-              }} id="filled-search" label="Search field" type="search" variant="outlined" />
-              <Typography variant="h4">Books</Typography>
-              {/* <div style={{textAlign: 'left'}}> */}
-              <Typography variant="h6"><span style = {{background: '#9bdeac', margin: 12}}>Most relevent.</span>   
-               <span style = {{background: '#f5d47a', margin: 12}}>Less relevent.</span>   
-               <span style = {{background: '#e7305b', margin: 12}}>Least relevent.</span></Typography>
-              <Grid container alignContent="center" direction="row">
-                {meta && uniqBy(orderBy(meta, 'order'), 'title').map((v, i) => {
-                  if (!v.title) return null;
-                  return ((v.title.toLowerCase().includes(filterValue)) && <Card key={Math.random()} className={classes.item}>
-                    <Grid item className={classes.hover} style={{ backgroundColor: v.color, height: '100%' }}>
-                      <Typography variant="h5" className={classes.link} component="a" href={v.url} target="blank">{v.title}</Typography>
-                      <Typography className={classes.pos} color="textSecondary">
-                        {i + 1} Author: {v.author}
-                      </Typography>
-                      <Typography className={classes.pos} color="textSecondary">
-                        Genre: {v.genre_name && v.genre_name[0]}
-                        {v.genre_name && v.genre_name.length > 1 && <Tooltip title={v.genre_name.slice(1).join(', ')} placement="left-start">
-                          <Button> +{v.genre_name.length - 1} more</Button>
-                        </Tooltip>}
-                      </Typography>
-                      {v.rating && (<Typography className={classes.pos} color="textSecondary">
-                        Rating: {v.rating}
-                      </Typography>)}
-                      {v.similar && (<Typography className={classes.pos} color="textSecondary">
-                        Similar to book: {v.count}
-                      </Typography>)}
-                    </Grid>
-                  </Card>)
-                })
-                }
 
-              </Grid>
+                </Grid>
 
-            </div>
-          )}
-      </div>
+              </div>
+            )}
+        </div>
+      </>)}
     </React.Fragment>
   );
 }
