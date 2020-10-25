@@ -13,9 +13,6 @@ import { getAuthor, extractData, getGenres, getBooks, getAuthorsGenres, getAutho
 
 const useStyles = makeStyles(theme => ({
   item: {
-    // '&:hover': {
-    //   background: 'red',
-    // },
     flexBasis: 'calc(100% / 2 - 10px)',
     margin: 5,
   },
@@ -144,10 +141,9 @@ function Books(props) {
               }} id="filled-search" label="Search field" type="search" variant="outlined" />
               <Typography variant="h4">Books</Typography>
               {/* <div style={{textAlign: 'left'}}> */}
-              <Typography variant="h6"><span>Green &rarr; relavent.</span></Typography>
-              <Typography variant="h6">Orange &rarr; less relavent.</Typography>
-              <Typography variant="h6">Red &rarr; least relavent.</Typography>
-              {/* </div> */}
+              <Typography variant="h6"><span style = {{background: '#9bdeac', margin: 12}}>Most relevent.</span>   
+               <span style = {{background: '#f5d47a', margin: 12}}>Less relevent.</span>   
+               <span style = {{background: '#e7305b', margin: 12}}>Least relevent.</span></Typography>
               <Grid container alignContent="center" direction="row">
                 {meta && uniqBy(orderBy(meta, 'order'), 'title').map((v, i) => {
                   if (!v.title) return null;

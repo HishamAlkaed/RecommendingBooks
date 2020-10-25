@@ -10,7 +10,7 @@ import TextField from '@material-ui/core/TextField';
 import Autocomplete, {createFilterOptions} from '@material-ui/lab/Autocomplete';
 
 
-import { extractData, extractValues, GetAll } from '../utils/index'
+import { extractData, GetAll } from '../utils/index'
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -82,7 +82,7 @@ function Home(props) {
         >
           <Grid item>
             <Typography component="h2" className={`${classes.drop_down} ${classes.info}`}>
-              Start choosing your favorite authors (among {authors.length}), genres (among {genres.length}) and books (among {books.length}) in order to get the best recommendations!
+              Choose your favorite author/s (among {authors.length}), genre/s (among {genres.length}) and book/s (among {books.length}) in order to get the best recommendations!
               </Typography>
           </Grid>
           <Grid item>
