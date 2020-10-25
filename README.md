@@ -8,7 +8,7 @@ Please follow this instructions to install and run the app:
 
 1. clone/download this repository and **change directory** into it from the command line .
 2. Then `npm install` .
-3. Create a new repository in GraphDB or some similar editor .
+3. Create a new repository in GraphDB or some similar triple store .
 4. Import the .ttl file into graphDB repository.
 5. Copy and paste the repository URL into scr->utils->index.js->line 5.
 6. Finally `npm start` .
